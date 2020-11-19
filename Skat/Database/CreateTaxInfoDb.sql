@@ -1,0 +1,26 @@
+CREATE TABLE [SkatUser](
+    [Id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    [UserId] INTEGER NOT NULL,
+    [CreatedAt] DATE NOT NULL, 
+    [IsActive] BOOLEAN NOT NULL
+);
+
+CREATE TABLE [SkatYear](
+    [Id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    [Label] TEXT NOT NULL,
+    [CreatedAt] DATE NOT NULL,
+    [ModifiedAt] DATE NOT NULL,
+    [StartDate] DATE NOT NULL,
+    [EndDate] DATE NOT NULL
+);
+
+CREATE TABLE [SkatUserYear](
+    [Id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    [SkatUserId] INTEGER NOT NULL,
+    [SkatYearId] INTEGER NOT NULL,
+    [UserId] INTEGER NOT NULL,
+    [IsPaid] BOOLEAN NOT NULL,
+    [Amount] FLOAT NOT NULL,
+    FOREIGN KEY([SkatUserId]) REFERENCES [SkatUser](Id),
+    FOREIGN KEY([SkatYearId]) REFERENCES [SkatYear](Id)
+);
