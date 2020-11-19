@@ -11,23 +11,33 @@ const read_amount_account = "SELECT amount FROM BankBorger.account WHERE BankUse
 const update_deduct_amount_account = "UPDATE BankBorger.account SET Amount = ? - ?  WHERE ? = ?";
 
 //Done
+app.get('/', (req, res) => {
+    console.log('Received request on "/"')
+    res.status(200).send({'Response': 'Welcome to Bank, we use JSON here :)'});
+});
 
 app.post('/api/bank/withdraw_money', async (req, res) => {
-    let amount = req.body.amount;
-    let bankUserId = req.body.bankUserId;
+    console.log('Received request on: "/api/bank/withdraw_money"');
+
+    let data = req.body.data;
+    console.log(data.Amount)
+    let bankUserId = data.bankUserId;
+    let amount = data.Amount;
+    console.log(data.bankUserId);
 
     const getAmount = "SELECT Amount FROM account WHERE BankUserId = ?";
     con.query(getAmount, [bankUserId], async (err, results) => {
         if (err) {
+            console.log('line 31 bank', err)
             res.status(500).send("Bad Request: ");
-
         } else {
-            let substractAmount = amount - results[0];
+            let substractAmount = results[0].Amount - amount;
+            console.log(substractAmount)
             const putNewAmount = "UPDATE account SET Amount = ? WHERE BankUserId = ?";
             con.query(putNewAmount, [substractAmount, bankUserId], async (err, results) => {
                 if (err){
-                    res.status(500).send("Bad Request: ");
-
+                    console.log(err)
+                    res.status(500).send("Bad Request: line 36 bank");
                 } else {
                     res.status(200).send({"Results": "Final", results});
                 }
@@ -36,7 +46,7 @@ app.post('/api/bank/withdraw_money', async (req, res) => {
     });
 });
 
-app.post('/api/BankBorger/add_deposit', async (req, res) => {
+app.post('/api/bank/add_deposit', async (req, res) => {
     let incomingAmount = req.body.amount;
     let bankerUserId = req.body.bankUserId;
     if (incomingAmount > 0) {
@@ -73,7 +83,7 @@ app.post('/api/BankBorger/add_deposit', async (req, res) => {
 });
 
 //Done
-app.get('/api/BankBorger/list_deposit', async (req, res) => {
+app.get('/api/bank/list_deposit', async (req, res) => {
     let bankUserId = req.body.bankUserId;
     console.log(bankUserId);
     const read_deposit = "SELECT bankUserId, CreateAt, Amount FROM BankBorger.deposit WHERE BankUserId = ?";
@@ -87,7 +97,7 @@ app.get('/api/BankBorger/list_deposit', async (req, res) => {
     });
 });
 //TODO TEST THIS ONE WHEN TOGETHER WITH PHILLIP
-app.get('/api/BankBorger/create_loan', async (req, res) => {
+app.get('/api/bank/create_loan', async (req, res) => {
     let bankUserId = req.body.bankUserId;
     let loanAmount = req.body.loanAmount;
     con.query(read_amount_account, [bankUserId], async (err, results) => {
@@ -124,7 +134,7 @@ app.get('/api/BankBorger/create_loan', async (req, res) => {
     });
 });
 //DONE
-app.post('/api/BankBorger/pay_loan', async (req, res) => {
+app.post('/api/bank/pay_loan', async (req, res) => {
     let bankUserId = req.body.bankUserId;
     let loanId = req.body.loanId;
     const read_loan = "SELECT amount FROM BankBorger.loan WHERE Id = ? AND Userid = ?";
@@ -159,7 +169,7 @@ app.post('/api/BankBorger/pay_loan', async (req, res) => {
         }
     })
 });
-app.get('/api/BankBorger/list_loans', async (req, res) => {
+app.get('/api/bank/list_loans', async (req, res) => {
     const list_of_unpaid_loans = "SELECT Userid, CreateAt, ModifiedAt, Amount FROM loan WHERE Amount > 0 AND Userid = ?";
     let bankUserId = req.body.bankUserId;
     con.query(list_of_unpaid_loans, [bankUserId], async (err, results) => {
@@ -172,10 +182,6 @@ app.get('/api/BankBorger/list_loans', async (req, res) => {
     });
 });
 
-//TODO MISSING
-app.post('/api/BankBorger/withdrawl_money', async (req, res) => {
-
-});
 app.post('/add_account', async (req, res) => {
     let id = req.body.id;
     let bankUserId = req.body.bankUserId;
@@ -191,7 +197,7 @@ app.post('/add_account', async (req, res) => {
         res.status(200).send("inserted:");
     });
 });
-app.get('/api/BankBorger/read_account', async (req, res) => {
+app.get('/api/bank/read_account', async (req, res) => {
     const readquery_account = "SELECT id, BankUserId,IsStudent, CreateAt, ModfiedAt, InterestRate, Amount FROM BankBorger.account";
 
     con.query(readquery_account, async (err, results, fields) => {
@@ -203,7 +209,7 @@ app.get('/api/BankBorger/read_account', async (req, res) => {
 app.post('/add_amount', async (req, res) => {
 
 });
-app.post('/api/BankBorger/update_account', async (req, res) => {
+app.post('/api/bank/update_account', async (req, res) => {
     let where = req.body.where;
     let change = req.body.change;
     let id_find = req.body.id_find;
@@ -218,7 +224,7 @@ app.post('/api/BankBorger/update_account', async (req, res) => {
         }
     });
 });
-app.post('/api/BankBorger/delete_account', async (req, res) => {
+app.post('/api/bank/delete_account', async (req, res) => {
     let id_find = req.body.id_find;
     const deletequery_account = "DELETE FROM BankBorger.account WHERE BankUserId = ?";
     con.query(deletequery_account, [id_find], async (err) => {
@@ -231,7 +237,7 @@ app.post('/api/BankBorger/delete_account', async (req, res) => {
 });
 
 //CRUD BankUser
-app.post('/api/BankBorger/add_bankUser', async (req, res) => {
+app.post('/api/bank/add_bankUser', async (req, res) => {
     let userid = req.body.userId;
     let createAt = req.body.CreateAt;
     let modifiedAt = req.body.ModifiedAt;
@@ -245,7 +251,7 @@ app.post('/api/BankBorger/add_bankUser', async (req, res) => {
         }
     });
 });
-app.get('/api/BankBorger/read_bankUser', async (req, res) => {
+app.get('/api/bank/read_bankUser', async (req, res) => {
     const readquery_bankUser = "SELECT id, Userid, CreateAt, ModifiedAt FROM BankBorger.bankuser";
     con.query(readquery_bankUser, async (err, results) => {
         if (err) {
@@ -256,7 +262,7 @@ app.get('/api/BankBorger/read_bankUser', async (req, res) => {
         }
     });
 });
-app.post('/api/BankBorger/update_bankUser', async (req, res) => {
+app.post('/api/bank/update_bankUser', async (req, res) => {
     let change = req.body.change;
     let id_find = req.body.id_find;
     const updatequery_bankUser = "UPDATE BankBorger.bankuser SET CreateAt = ?  WHERE id =  ?";
@@ -267,7 +273,7 @@ app.post('/api/BankBorger/update_bankUser', async (req, res) => {
         res.status(200).send("changed the follow: " + id_find + " to " + change);
     });
 });
-app.post('/api/BankBorger/delete_bankUser', async (req, res) => {
+app.post('/api/bank/delete_bankUser', async (req, res) => {
 
     let id_find = req.body.id_find;
     const deletequery_bankUser = "DELETE FROM BankBorger.bankuser WHERE UserId = ?";

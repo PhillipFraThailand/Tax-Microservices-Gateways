@@ -19,7 +19,7 @@ con.connect(function (err) {
 /*
 ADDRESS CRUD
  */
-app.get('/api/BankBorger/read_borger_address_table', async (req, res) => {
+app.get('/api/borger/read_borger_address_table', async (req, res) => {
     const readquery_address = "SELECT id, BorgerUserId, CreatedAt, IsValid FROM BankBorger.address";
     con.query(readquery_address, async (err, results) => {
         if (err) {
@@ -29,7 +29,7 @@ app.get('/api/BankBorger/read_borger_address_table', async (req, res) => {
     });
 });
 
-app.post('/api/BankBorger/add_address', async (req, res) => {
+app.post('/api/borger/add_address', async (req, res) => {
     let id = req.body.id;
     let borgerUserId = req.body.BorgerUserId;
     let createAt = req.body.CreatedAt;
@@ -44,7 +44,7 @@ app.post('/api/BankBorger/add_address', async (req, res) => {
     });
 });
 
-app.post('/api/BankBorger/update_address', async (req, res) => {
+app.post('/api/borger/update_address', async (req, res) => {
     let change = req.body.change;
     let id_find = req.body.id_find;
     const updatequery_address = "UPDATE address SET CreatedAt = ?  WHERE BorgerUserId =  ?";
@@ -58,7 +58,7 @@ app.post('/api/BankBorger/update_address', async (req, res) => {
     });
 });
 
-app.post('/api/BankBorger/delete_address', async (req, res) => {
+app.post('/api/borger/delete_address', async (req, res) => {
 
     let id_find = req.body.id_find;
     const deletequery_address = "DELETE FROM address WHERE BorgerUserId = ?";
@@ -74,7 +74,7 @@ app.post('/api/BankBorger/delete_address', async (req, res) => {
 /*
 BORGER USER CRUD
  */
-app.post('/api/BankBorger/add_borgeruser', async (req, res) => {
+app.post('/api/borger/add_borgeruser', async (req, res) => {
     let id = req.body.id;
     let userid = req.body.UserId;
     let createAt = req.body.createAt;
@@ -89,7 +89,7 @@ app.post('/api/BankBorger/add_borgeruser', async (req, res) => {
     });
 });
 
-app.get('/api/BankBorger/read_borgeruser', async (req, res) => {
+app.get('/api/borger/read_borgeruser', async (req, res) => {
     const readquery_borgeruser = "SELECT id, Userid, CreateAt FROM borgeruser";
 
     con.query(readquery_borgeruser, async (err, results, fields) => {
@@ -103,7 +103,7 @@ app.get('/api/BankBorger/read_borgeruser', async (req, res) => {
     });
 });
 
-app.post('/api/BankBorger/update_borgeruser', async (req, res) => {
+app.post('/api/borger/update_borgeruser', async (req, res) => {
     let change = req.body.change;
     let id_find = req.body.id_find;
     const updatequery_borgeruser = "UPDATE borgeruser SET CreateAt = ?  WHERE id =  ?";
@@ -118,7 +118,7 @@ app.post('/api/BankBorger/update_borgeruser', async (req, res) => {
     });
 });
 
-app.post('/api/BankBorger/delete_borgeruser', async (req, res) => {
+app.post('/api/borger/delete_borgeruser', async (req, res) => {
 
     let id_find = req.body.id_find;
 

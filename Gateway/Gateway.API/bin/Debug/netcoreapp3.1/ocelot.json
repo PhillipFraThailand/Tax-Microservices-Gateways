@@ -300,7 +300,7 @@
       "DownstreamHostandPorts": [
         {
           "Host": "localhost",
-          "Port": "5006"
+          "Port": "8088"
         }
       ],
       "UpstreamPathTemplate": "/create-user",
@@ -314,7 +314,7 @@
       "DownstreamHostandPorts": [
         {
           "Host": "localhost",
-          "Port": "5006"
+          "Port": "8088"
         }
       ],
       "UpstreamPathTemplate": "/delete-user",
@@ -328,7 +328,7 @@
       "DownstreamHostandPorts": [
         {
           "Host": "localhost",
-          "Port": "5006"
+          "Port": "8088"
         }
       ],
       "UpstreamPathTemplate": "/create-skatyear",
@@ -342,7 +342,7 @@
       "DownstreamHostandPorts": [
         {
           "Host": "localhost",
-          "Port": "5006"
+          "Port": "8088"
         }
       ],
       "UpstreamPathTemplate": "/get-skatyear",
@@ -356,7 +356,7 @@
       "DownstreamHostandPorts": [
         {
           "Host": "localhost",
-          "Port": "5006"
+          "Port": "8088"
         }
       ],
       "UpstreamPathTemplate": "/get-user",
@@ -370,7 +370,7 @@
       "DownstreamHostandPorts": [
         {
           "Host": "localhost",
-          "Port": "5006"
+          "Port": "8088"
         }
       ],
       "UpstreamPathTemplate": "/update-skatyear",
@@ -398,12 +398,26 @@
       "DownstreamHostandPorts": [
         {
           "Host": "localhost",
-          "Port": "5006"
+          "Port": "8088"
         }
       ],
       "UpstreamPathTemplate": "/pay-taxes",
       "UpstreamHttpMethod": [
         "POST"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api",
+      "DownstreamScheme": "http",
+      "DownstreamHostandPorts": [
+        {
+          "Host": "localhost",
+          "Port": "8088"
+        }
+      ],
+      "UpstreamPathTemplate": "/api",
+      "UpstreamHttpMethod": [
+        "GET"
       ]
     },
     {

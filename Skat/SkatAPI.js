@@ -21,6 +21,10 @@ app.get('/', (req, res) => {
     console.log('Received request on "/"')
     res.status(200).send({'Response': 'Welcome to SkatAPI, we use JSON here :)'});
 });
+app.get('/api', (req, res) => {
+    console.log('Received request on "/"')
+    res.status(200).send({'Response': 'Welcome to SkatAPI, we use JSON here :)'});
+});
 
 // create user
 app.post('/create-user', (req, res) => {
@@ -70,7 +74,7 @@ app.patch('/update-user', (req, res) => {
 });
 
 //delete specific user
-app.delete('/delete-user', (req, res) => {
+app.delete('/api/delete-user', (req, res) => {
     console.log('received request on "/delete-user"');
     let data = req.body;
     let query = 'DELETE From SkatUser WHERE Id = ?';
@@ -85,7 +89,7 @@ app.delete('/delete-user', (req, res) => {
 });
 
 // create SkatYear
-app.post('/create-skatyear', (req, res) => {
+app.post('/api/create-skatyear', (req, res) => {
     console.log('received request on "/create-skatyear"');
     let data = req.body;
     let query = 'INSERT INTO SkatYear(Label, CreatedAt, ModifiedAt, StartDate, EndDate) VALUES(?,?,?,?,?)';
@@ -101,7 +105,7 @@ app.post('/create-skatyear', (req, res) => {
 });
 
 // get skatyear
-app.get('/get-skatyear', (req,res) => {
+app.get('/api/get-skatyear', (req,res) => {
     console.log('received request on "/get-skatyear"');
     let data = req.body;
     let query = 'SELECT * FROM SkatYear WHERE Id = ?';
@@ -117,7 +121,7 @@ app.get('/get-skatyear', (req,res) => {
 });
 
 // update specific SkatYear
-app.patch('/update-skatyear', (req, res) => {
+app.patch('/api/update-skatyear', (req, res) => {
     console.log('received request on "/skatyear"');
     let data = req.body;
     let query = 'UPDATE SkatYear SET Label = ? WHERE ? = ?';
@@ -132,7 +136,7 @@ app.patch('/update-skatyear', (req, res) => {
 });
 
 // delete skatYear
-app.delete('/delete-skatyear', (req, res) => {
+app.delete('/api/delete-skatyear', (req, res) => {
     console.log('received request on "/delete-skatyear"');
     let data = req.body;
     let query = 'DELETE From SkatYear WHERE Id = ?';
@@ -183,6 +187,7 @@ app.post('/api/pay-taxes', (req, res) => {
         .then((response) => {
             console.log('response from Skat_Tax_Calculator: ', response.data);
             let taxResponse = response.data;
+            let money = taxResponse.tax_money;
 
             // if success, update SkatYear to paid.
             if (response.status < 400) {
@@ -195,15 +200,19 @@ app.post('/api/pay-taxes', (req, res) => {
                     };
                 });
                 // log for debugging and make a request to deduct the amount from users bank.
-                console.log(`Updated SkatUserYear: Amount: ${taxResponse.tax_money} for user: ${data.UserId}`);
-                axios.post('localhost:5001/bank/withdraw_money', { 
+                console.log('Updated SkatUserYear: Line 198');
+                // axios.post('http://localhost:5001/bank/withdraw_money', { 
+                    console.log('line 201', response.data.tax_money)
+
+                axios.post('http://localhost:5005/api/bank/withdraw_money', { 
                     data: {
                         bankUserId: data.UserId,
-                        Amount:response.data.tax_money
+                        Amount:money
                     }
                 })
                 .then((response)=> {
                     //if success
+                    console.log('line 211 response from bank')
                     if (response.status < 400) {
                         console.log('success deducting from account');
                         res.status(200).send({"Response":"Taxes sucessfully paid. The amount has been deducted from your account"});
@@ -214,7 +223,6 @@ app.post('/api/pay-taxes', (req, res) => {
                 })
                 .catch(function (error) {
                     console.log('ERROR LINE 216');
-                    console.log(error);
                 })
             // if Skat_Tax_Calculator does not give a valid response log it.
             } else { 
