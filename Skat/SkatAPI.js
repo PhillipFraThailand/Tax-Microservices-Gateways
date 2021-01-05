@@ -222,7 +222,7 @@ app.post('/api/pay-taxes', (req, res) => {
                     }
                 })
                 .catch(function (error) {
-                    console.log('ERROR LINE 216');
+                    console.log('ERROR LINE 225');
                 })
             // if Skat_Tax_Calculator does not give a valid response log it.
             } else { 

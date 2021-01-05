@@ -47,38 +47,45 @@ app.post('/api/bank/withdraw_money', async (req, res) => {
 });
 
 app.post('/api/bank/add_deposit', async (req, res) => {
+    console.log('Request on: "api/bank/add_deposit"');
     let incomingAmount = req.body.amount;
     let bankerUserId = req.body.bankUserId;
     if (incomingAmount > 0) {
+        console.log('sending:', incomingAmount);
         axios({
             method: 'post',
-            url: 'http://localhost:7071/api/interestRate',
+            url: 'http://localhost:7073/api/Interest-Rate-Function',
             data: {
-                amount: req.body.amount
+                amount: incomingAmount
             }
         })
-            .then(response => {
-                let getCurrentTime = new Date().toISOString().slice(0, 10);
-                let amount = response.data;
-                let finalAmount = amount.replace(',', ".")
-                const update_add_amount_account = "UPDATE BankBorger.account SET Amount = Amount + ?  WHERE BankUserId = ?";
-                con.query(update_add_amount_account, [finalAmount, bankerUserId], async (err) => {
-                    if (err) {
-                        res.status(500).send("Bad Request");
-                    } else {
-                        const createDeposit_account = "INSERT INTO BankBorger.deposit (BankUserId, CreateAt, Amount) VALUES (?,?,?)";
-                        con.query(createDeposit_account, [bankerUserId, getCurrentTime, finalAmount], async (err) => {
-                            if (err) {
-                                console.log({ "Response": "What we get ", bankerUserId, getCurrentTime, finalAmount })
-                                res.status(500).send("Bad Request deposit:")
-                            } else {
-                                res.status(200).send({ "Response": 'Success: ' + bankerUserId + " " + getCurrentTime + " " + finalAmount });
-                            }
-                        })
-                    }
-                });
-            }
-            )
+        .then(response => {
+            console.log('Response gotten');
+            let getCurrentTime = new Date().toISOString().slice(0, 10);
+            console.log(getCurrentTime)
+            let amount = response.data.interest_amount;
+            const update_add_amount_account = "UPDATE BankBorger.account SET Amount = Amount + ?  WHERE BankUserId = ?";
+            con.query(update_add_amount_account, [amount, bankerUserId], async (err) => {
+                if (err) {
+                    console.log([amount, bankerUserId])
+                    res.status(500).send("DB error");
+                } else {
+                    console.log([amount, bankerUserId])
+                    const createDeposit_account = "INSERT INTO BankBorger.deposit (BankUserId, CreateAt, Amount) VALUES (?,?,?)";
+                    con.query(createDeposit_account, [bankerUserId, getCurrentTime, amount], async (err) => {
+                        if (err) {
+                            console.log({ "Response": "What we get ", bankerUserId, getCurrentTime, amount });
+                            console.log(err);
+                            res.status(500).send("Bad Request deposit:");
+                        } else {
+                            res.status(200).send({ "Response": 'Success: ' + bankerUserId + " " + getCurrentTime + " " + amount });
+                        }
+                    });
+                }
+            });
+        }).catch(e =>{
+            console.log('Error');
+        })
     }
 });
 
@@ -96,6 +103,7 @@ app.get('/api/bank/list_deposit', async (req, res) => {
         }
     });
 });
+
 //TODO TEST THIS ONE WHEN TOGETHER WITH PHILLIP
 app.get('/api/bank/create_loan', async (req, res) => {
     let bankUserId = req.body.bankUserId;
