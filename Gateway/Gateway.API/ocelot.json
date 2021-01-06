@@ -415,7 +415,7 @@
           "Port": "8088"
         }
       ],
-      "UpstreamPathTemplate": "/api",
+      "UpstreamPathTemplate": "/test",
       "UpstreamHttpMethod": [
         "GET"
       ]

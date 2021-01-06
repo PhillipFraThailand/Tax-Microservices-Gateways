@@ -19,10 +19,9 @@ app.get('/', (req, res) => {
 app.post('/api/bank/withdraw_money', async (req, res) => {
     console.log('Received request on: "/api/bank/withdraw_money"');
 
-    let data = req.body.data;
-    console.log(data.Amount)
+    let data = req.body;
     let bankUserId = data.bankUserId;
-    let amount = data.Amount;
+    let amount = data.amount;
     console.log(data.bankUserId);
 
     const getAmount = "SELECT Amount FROM account WHERE BankUserId = ?";

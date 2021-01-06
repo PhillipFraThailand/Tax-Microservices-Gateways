@@ -1,0 +1,13 @@
+Received request on: "/api/bank/withdraw_money"
+(node:5218) UnhandledPromiseRejectionWarning: TypeError: Cannot read property 'Amount' of undefined
+    at /Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/Bank/Bank.js:23:22
+    at Layer.handle [as handle_request] (/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/express/lib/router/layer.js:95:5)
+    at next (/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/express/lib/router/route.js:137:13)
+    at Route.dispatch (/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/express/lib/router/route.js:112:3)
+    at Layer.handle [as handle_request] (/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/express/lib/router/layer.js:95:5)
+    at /Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/express/lib/router/index.js:281:22
+    at Function.process_params (/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/express/lib/router/index.js:335:12)
+    at next (/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/express/lib/router/index.js:275:10)
+    at /Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/body-parser/lib/read.js:130:5
+    at invokeCallback (/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/node_modules/raw-body/index.js:224:16)
+(node:5218) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https://nodejs.org/api/cli.html#cli_unhandled_rejections_mode). (rejection id: 3)
