@@ -1,8 +1,8 @@
-// phillip eismark
 // imports
 const axios = require('axios');
 const sqlite3 = require('sqlite3');
 const express = require('express');
+const { json } = require('express');
 
 // instantiate database
 var db = new sqlite3.Database('/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/Skat/Database/TaxInfoDb.sqlite');
@@ -47,26 +47,26 @@ app.get('/get-user', (req, res) => {
     console.log('received request on "/get-user"');
     let data = req.body;
     let query = 'SELECT * FROM SkatUser WHERE Id = ?';
-    db.get(query, [data.Id], (err, user) => {
+    db.get(query, [data.Id], (err) => {
         if (err) {
             console.log(err);
             res.status(500).send({'Response':'Error getting user'});
-        } 
-            else {
+        } else {
             res.status(200).send({'Response':user});
         };
     });
 });
 
-// update specific user
+// update specific user - cant be validated after ES6 since the this.changes object will be null
 app.patch('/update-user', (req, res) => {
     console.log('received request on "/update-user"');
     let data = req.body;
     let query = "UPDATE SkatUser SET IsActive = ? WHERE Id = ?";
-    db.run(query, [data.Value, data.Identifier], (err) => {
+
+    db.run(query, [data.isActive, data.id], (result, err) => {
         if (err) {
             console.log(err);
-            res.status(500).send({'Response':'Error updating user'});
+            res.status(500).send({'Response':'Error updating user', err });
         } else {
             res.status(200).send({'Response': 'Success updating'});
         };
@@ -90,7 +90,6 @@ app.delete('/api/delete-user', (req, res) => {
 
 // create SkatYear
 app.post('/api/create-skatyear', (req, res) => {
-    console.log('received request on "/create-skatyear"');
     let data = req.body;
     let query = 'INSERT INTO SkatYear(Label, CreatedAt, ModifiedAt, StartDate, EndDate) VALUES(?,?,?,?,?)';
     db.run(query, [data.Label, data.CreatedAt, data.ModifiedAt, data.StartDate, data.EndDate], (err) => {
@@ -120,7 +119,7 @@ app.get('/api/get-skatyear', (req,res) => {
     });
 });
 
-// update specific SkatYear
+// update SkatYear
 app.patch('/api/update-skatyear', (req, res) => {
     console.log('received request on "/skatyear"');
     let data = req.body;
@@ -150,22 +149,47 @@ app.delete('/api/delete-skatyear', (req, res) => {
     }); 
 });
 
-// TODO: break this into smaller functions.
-app.post('/api/pay-taxes', (req, res) => {
-    console.log('received request on "/api/pay-taxes"');
+// create skatUserYear takes SkatUserId, SkatYearId, UserId, IsPaid, Amount
+app.post('/api/create-skatUserYear', (req, res) => {
     let data = req.body;
+
+    let id = data.Id;
+    let skatUserId = data.SkatUserId;
+    let skatYearId = data.SkatYearId;
+    let userId = data.UserId;
+    let isPaid = data.IsPaid;
+    let amount = data.Amount;
+    console.log(id,skatUserId,skatYearId,userId,isPaid,amount)
+
+    let query = "INSERT INTO SkatUserYear VALUES (?, ?, ?, ?, ?, ?)";
+
+    db.run(query, [id,skatUserId,skatYearId,userId,isPaid,amount], (err) =>{
+        if (err) {
+            console.log(err);
+            res.status(400).send({"Response":"Error creating SkatUserYear"});
+        } else {
+            res.status(201).send({"Response":"Succesfully created SkatUserYear"});
+        }
+    })
+})
+
+// pay-taxes
+app.post('/api/pay-taxes', (req, res) => {
+    let data = req.body;
+    let amount = data.Amount;
+    let id = data.UserId;
     
     // verify valid amount
-    if (data.Amount <= 0) {
-        console.log('Invalid amount');
-        res.status(400).send({"Response":"Invalid Amount must be over 0"});
+    if (amount <= 0) {
+        res.status(400).send({"Response":"Invalid amount must be over 0"});
+
+    // Check if unpaid taxyears. 
     } else {
-        // look for unpaid taxyears. results.size should be 0 if there are none.
         let query = 'Select * from SkatUserYear WHERE IsPaid = 0 and UserId = ?';
-        db.all(query, [data.UserId], (err, results) => {
+        db.all(query, [id], (err, results) => {
             if (err) {
-                console.log(err);
                 res.status(500).send({"Response":"Error checking earlier tax years"});
+                console.log(err);
             } else {
                 switch (results.length) {
                     case 0:
@@ -178,62 +202,44 @@ app.post('/api/pay-taxes', (req, res) => {
             }
         });
 
-        // request Skat_Tax_Calculator function. It takes in float 'money'.
-        console.log('Sending axios request to tax-calculater');
+        // Request Skat_Tax_Calculator 
         axios.post('http://localhost:7071/api/Skat_Tax_Calculator', {
-            money: `${data.money}`
+            money: amount
         })
-        // catch response and request to deduce the amount from the users account
+
+        // Response 
         .then((response) => {
-            console.log('response from Skat_Tax_Calculator: ', response.data);
-            let taxResponse = response.data;
-            let money = taxResponse.tax_money;
+            let taxAmount = String(response.data.tax_money);    
+            let query = "UPDATE SkatUserYear SET IsPaid = 1, Amount = ? WHERE UserId = ?";   
+            db.run(query,[taxAmount, id], (err) => {
+                if (err) {
+                    console.log('ERROR updating SkatYear: ', err);
+                } else {
+                    console.log('SkatYear updated to paid');
+                };
+            });
+            
+            // Request bank/withdraw-money
+            axios.post('http://localhost:5005/api/bank/withdraw-money', { 
+                data: {
+                    BankUserId: id,
+                    Amount: taxAmount
+                }
+            })
 
-            // if success, update SkatYear to paid.
-            if (response.status < 400) {
-                let query = "UPDATE SkatUserYear SET IsPaid = 1, Amount = ? WHERE UserId = ?";   
-                db.run(query,[taxResponse.tax_money, data.UserId], (err) => {
-                    if (err) {
-                        console.log('ERROR updating SkatYear: ', err);
-                    } else {
-                        console.log('Succesfully updated SkatYear');
-                    };
-                });
-                // log for debugging and make a request to deduct the amount from users bank.
-                console.log('Updated SkatUserYear: Line 198');
-                // axios.post('http://localhost:5001/bank/withdraw_money', { 
-                    console.log('line 201', response.data.tax_money)
-
-                axios.post('http://localhost:5005/api/bank/withdraw_money', { 
-                    data: {
-                        bankUserId: data.UserId,
-                        Amount:money
-                    }
-                })
-                .then((response)=> {
-                    //if success
-                    console.log('line 211 response from bank')
-                    if (response.status < 400) {
-                        console.log('success deducting from account');
-                        res.status(200).send({"Response":"Taxes sucessfully paid. The amount has been deducted from your account"});
-                    } else {
-                        console.log('Invalid response from bank: ', response.status);
-                        res.status(500).send({"Response":"Error paying taxes"});
-                    }
-                })
-                .catch(function (error) {
-                    console.log('ERROR LINE 225');
-                })
-            // if Skat_Tax_Calculator does not give a valid response log it.
-            } else { 
-                console.log('Invalid response from Skat_Tax_Calculator: ', response.status);
-            }
+            // Response 
+            .then((response) => {
+                console.log('success deducting from account');
+                res.status(200).send({"Response":"Taxes sucessfully paid. The amount has been deducted from your account"});
+            })
+            .catch(function (error) {
+                res.status(400).send({"Response":"Error paying taxes, are you sure the BankUserId is correct?"});
+            })
         })
         .catch(function (error) {
             console.log(error);
             res.status(500).send({"Response":"Error paying taxes"});
         })
-        // res.status(200).send({"Response":"always runs"});
     }   
 });
 

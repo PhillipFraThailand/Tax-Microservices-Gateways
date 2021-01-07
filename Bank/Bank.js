@@ -1,310 +1,397 @@
-// steffen giessing
-const express = require('express');
-const db = require('mysql');
-const PORT = 5005;
-var app = express();
-app.use(express.json());
 const axios = require('axios')
+const express = require('express');
+const sqlite3 = require('sqlite3');
 
-//CRUD Account
-const read_amount_account = "SELECT amount FROM BankBorger.account WHERE BankUserId = ?";
-const update_deduct_amount_account = "UPDATE BankBorger.account SET Amount = ? - ?  WHERE ? = ?";
+var db = new sqlite3.Database('/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/Bank/bankDb.sqlite');
 
-//Done
+const PORT = 5005;
+
+var app = express();
+
+app.use(express.json());
+
+
 app.get('/', (req, res) => {
     console.log('Received request on "/"')
     res.status(200).send({'Response': 'Welcome to Bank, we use JSON here :)'});
 });
 
-app.post('/api/bank/withdraw_money', async (req, res) => {
-    console.log('Received request on: "/api/bank/withdraw_money"');
+app.post('/api/bank/withdraw-money', async (req, res) => {
+    console.log('Received request on: "/api/bank/withdraw-money"');
+    let data = req.body.data;
+    let bankUserId = data.BankUserId
+    let amount = data.Amount;
+    console.log('test', bankUserId, amount);
+    console.log('data', data)
 
-    let data = req.body;
-    let bankUserId = data.bankUserId;
-    let amount = data.amount;
-    console.log(data.bankUserId);
-
-    const getAmount = "SELECT Amount FROM account WHERE BankUserId = ?";
-    con.query(getAmount, [bankUserId], async (err, results) => {
+    const query = "SELECT Amount FROM account WHERE BankUserId = ?";
+    db.get(query, [bankUserId], async (err, results) => {
         if (err) {
             console.log('line 31 bank', err)
             res.status(500).send("Bad Request: ");
         } else {
-            let substractAmount = results[0].Amount - amount;
-            console.log(substractAmount)
-            const putNewAmount = "UPDATE account SET Amount = ? WHERE BankUserId = ?";
-            con.query(putNewAmount, [substractAmount, bankUserId], async (err, results) => {
-                if (err){
-                    console.log(err)
-                    res.status(500).send("Bad Request: line 36 bank");
-                } else {
-                    res.status(200).send({"Results": "Final", results});
-                }
-            });
+            console.log(results)
+            if (results === undefined){
+                console.log('Could not find user, please try another BankuUserId');
+                res.status(400).send({"Response": "User does not exist, please try another BankUser Id"});
+            } else {
+                console.log('41', results);
+                let newAccountBalance = results.Amount - amount;
+                console.log(newAccountBalance)
+                const query = "UPDATE account SET Amount = ? WHERE BankUserId = ?";
+                db.run(query, [newAccountBalance, bankUserId], async (err, results) => {
+                    if (err){
+                        console.log(err)
+                        res.status(500).send({"Restults": "Couldn't insert new account balance please try again"});
+                    } else {
+                        res.status(200).send({"Results": "Final New account balance", newAccountBalance});
+                    }
+                });
+            }
         }
     });
 });
 
-app.post('/api/bank/add_deposit', async (req, res) => {
-    console.log('Request on: "api/bank/add_deposit"');
-    let incomingAmount = req.body.amount;
-    let bankerUserId = req.body.bankUserId;
+app.post('/api/bank/add-deposit', async (req, res) => {
+    let incomingAmount = req.body.Amount;
+    let bankerUserId = req.body.BankUserId;
     if (incomingAmount > 0) {
-        console.log('sending:', incomingAmount);
         axios({
             method: 'post',
             url: 'http://localhost:7073/api/Interest-Rate-Function',
             data: {
-                amount: incomingAmount
+                amount: req.body.Amount
             }
         })
-        .then(response => {
-            console.log('Response gotten');
-            let getCurrentTime = new Date().toISOString().slice(0, 10);
-            console.log(getCurrentTime)
-            let amount = response.data.interest_amount;
-            const update_add_amount_account = "UPDATE BankBorger.account SET Amount = Amount + ?  WHERE BankUserId = ?";
-            con.query(update_add_amount_account, [amount, bankerUserId], async (err) => {
-                if (err) {
-                    console.log([amount, bankerUserId])
-                    res.status(500).send("DB error");
-                } else {
-                    console.log([amount, bankerUserId])
-                    const createDeposit_account = "INSERT INTO BankBorger.deposit (BankUserId, CreateAt, Amount) VALUES (?,?,?)";
-                    con.query(createDeposit_account, [bankerUserId, getCurrentTime, amount], async (err) => {
-                        if (err) {
-                            console.log({ "Response": "What we get ", bankerUserId, getCurrentTime, amount });
-                            console.log(err);
-                            res.status(500).send("Bad Request deposit:");
-                        } else {
-                            res.status(200).send({ "Response": 'Success: ' + bankerUserId + " " + getCurrentTime + " " + amount });
-                        }
-                    });
-                }
-            });
-        }).catch(e =>{
-            console.log('Error');
-        })
+            .then(response => {
+                console.log(response.data);
+                let getCurrentTime = new Date().toISOString().slice(0, 10);
+                let amount = response.data.interest_amount;
+                console.log(amount)
+                const query = "UPDATE account SET Amount = Amount + ?  WHERE BankUserId = ?";
+                db.run(query, [amount, bankerUserId], async (err) => {
+                    if (err) {
+                        res.status(500).send("Bad Request");
+                    } else {
+                        const query = "INSERT INTO deposit (BankUserId, CreatedAt, Amount) VALUES (?,?,?)";
+                        db.run(query, [bankerUserId, getCurrentTime, amount], async (err) => {
+                            if (err) {
+                                console.log({ "Response": "What we get ", bankerUserId, getCurrentTime, amount })
+                                res.status(500).send({"Bad Request deposit": "Failed to set new deposit into database"})
+                            } else {
+                                res.status(200).send({ "Response": 'Success: on bankUser: ' + bankerUserId + " time: " + getCurrentTime + " amount: " + amount });
+                            }
+                        })
+                    }
+                });
+            }
+        )
     }
 });
 
-//Done
-app.get('/api/bank/list_deposit', async (req, res) => {
-    let bankUserId = req.body.bankUserId;
+app.get('/api/bank/list-deposit', async (req, res) => {
+    let bankUserId = req.body.BankUserId;
     console.log(bankUserId);
-    const read_deposit = "SELECT bankUserId, CreateAt, Amount FROM BankBorger.deposit WHERE BankUserId = ?";
-
-    con.query(read_deposit, [bankUserId], async (err, results) => {
+    const query = "SELECT BankUserId, CreatedAt, Amount FROM deposit WHERE BankUserId = ?";
+    db.get(query, [bankUserId], async (err, results) => {
         if (err) {
             res.status(500).send("Bad request");
         } else {
+            console.log(results);
             res.status(200).send({ "Response: ": "Success: ", results });
         }
     });
 });
 
-//TODO TEST THIS ONE WHEN TOGETHER WITH PHILLIP
-app.get('/api/bank/create_loan', async (req, res) => {
-    let bankUserId = req.body.bankUserId;
-    let loanAmount = req.body.loanAmount;
-    con.query(read_amount_account, [bankUserId], async (err, results) => {
+app.post('/api/bank/create-loan', async (req, res) => {
+    console.log("hitting")
+    let bankUserId = req.body.BankUserId;
+    let amount = req.body.Amount;
+    const query = "SELECT Amount FROM account WHERE BankUserId = ?";
+    db.get(query, [bankUserId], async (err, results) => {
         if (err) {
             res.status(500).send("Bad Request");
         } else {
-            console.log(results);
-            let totalAmount = results[0].amount;
             axios({
                 method: 'post',
                 url: 'http://localhost:7072/api/Loan-Algo-Function',
                 data: {
-                    accountAmount: totalAmount,
-                    loanAmount: loanAmount
+                    accountAmount: amount,
+                    loanAmount: amount
                 }
             })
-                .then(response => {
-                    response.data
-                    if (response.status < 400) {
-                        let getCurrentTime = new Date().toISOString().slice(0, 10);
-                        const createLoan_query = "INSERT INTO BankBorger.loan (Userid, CreateAt, ModifiedAt, Amount) VALUES (?, ?, ? ,?)";
-                        con.query(createLoan_query, [bankUserId, getCurrentTime, getCurrentTime, loanAmount], async (err) => {
-                            if (err) {
-                                res.status(500).send("Bad Request");
-                            } else {
-                                res.status(200).send("Inserted into loan");
-                            }
-                        });
-                    } else {
-                        res.status(500).send("Bad Request received");
-                    }
-                });
+            .then(response => {
+                console.log("hitting")
+                response.data
+                if (response.status < 400) {
+                    let getCurrentTime = new Date().toISOString().slice(0, 10);
+                    const query = "INSERT INTO loan (BankUserId, CreatedAt, ModifiedAt, Amount) VALUES (?, ?, ? ,?)";
+                    db.run(query, [bankUserId, getCurrentTime, getCurrentTime, amount], async (err) => {
+                        if (err) {
+                            res.status(500).send({"Response cannot insert into database": "Values tried to insert => ", bankUserId, getCurrentTime, getCurrentTime, amount});
+                        } else {
+                            res.status(200).send({"Inserted into loan":"Values insterted into database => ", bankUserId, getCurrentTime, getCurrentTime, amount });
+                        }
+                    });
+                } else {
+                    res.status(500).send("Bad Request received");
+                }
+            })
+            .catch(e => {
+                console.log(e);
+            });
         }
     });
 });
-//DONE
-app.post('/api/bank/pay_loan', async (req, res) => {
-    let bankUserId = req.body.bankUserId;
-    let loanId = req.body.loanId;
-    const read_loan = "SELECT amount FROM BankBorger.loan WHERE Id = ? AND Userid = ?";
-    con.query(read_loan, [loanId, bankUserId], async (err, results) => {
+
+app.post('/api/bank/pay-loan', async (req, res) => {
+    let bankUserId = req.body.BankUserId;
+    let loanId = req.body.LoanId;
+    let amount = req.body.Amount;
+    const query = "SELECT Amount FROM loan WHERE BankUserId = ? AND Id = ?";
+    db.get(query, [bankUserId, loanId], async (err, results) => {
         if (err) {
             res.status(500).send("Bad Request: can't find database");
         } else {
-
-            let loanAmount = results[0].amount;
-            con.query(read_amount_account, [bankUserId], async (err, results) => {
+            console.log("LOAN AMOUNT " , results)
+            let loanAmount = results.Amount;
+            const query = "SELECT Amount FROM account WHERE BankUserId = ?"
+            db.get(query, [bankUserId], async (err, results) => {
                 if (err) {
                     res.status(500).send("Bad Request: can't find database");
+                } else if(results.Amount < amount) {
+                    res.status(500).send({"Not enough money in account" : "You cannot pay that much to the loan cannot be more than the amount in you account"});
                 } else {
-
-                    let accountAmount = results[0].amount;
-                    let calcResult = accountAmount - loanAmount;
-                    if (calcResult >= 0) {
-                        const change_account_amount = "UPDATE account SET Amount = ? WHERE BankUserId = ?";
-                        con.query(change_account_amount, [calcResult, bankUserId], async (err, results) => {
-                            if (err) {
-                                res.status(500).send("Bad Request: ");
-                            } else {
-                                res.status(200).send("Money paid to loan: "
-                                    + " Loan amount " + loanAmount + "inserted amount: " + accountAmount + " Missing: " + calcResult + "New account balance: ");
-                            }
-                        });
-                    } else {
-                        res.status(500).send("Bad Request: " + loanAmount + " is greater than what you have in your account: " + accountAmount)
-                    }
+                    console.log("ACCOUNT AMOUNT: ", results);
+                    let accountAmount = results.Amount;
+                    let calcResult = loanAmount - amount;
+                    let newAmountToAccount = accountAmount - amount;
+                    console.log(newAmountToAccount);
+                    console.log("New LOAN AMOUNT", calcResult)
+                    const query = "UPDATE account SET Amount = ? WHERE BankUserId = ?";    
+                    db.run(query, [newAmountToAccount, bankUserId], async (err, results) => {
+                        if(err){
+                            res.status(500).send({"Couldn't update account with the new amount": newAmountToAccount});
+                        } else {    
+                            if (calcResult >= 0) {
+                            const query = "UPDATE loan SET Amount = ? WHERE BankUserId = ? AND Id = ?";
+                            db.run(query, [calcResult, bankUserId, loanId], async (err, results) => {
+                                if (err) {
+                                    res.status(500).send({"Bad Request: ": "Cannot update loan amount"});
+                                } else {
+                                    res.status(200).send({"Money paid to loan: "
+                                        : amount , " Loan amount " : loanAmount, "new Balance: ": newAmountToAccount,  
+                                        " Missing: ":  calcResult });
+                                    }
+                                });
+                            } 
+                        }
+                    });
                 }
             });
         }
     })
 });
-app.get('/api/bank/list_loans', async (req, res) => {
-    const list_of_unpaid_loans = "SELECT Userid, CreateAt, ModifiedAt, Amount FROM loan WHERE Amount > 0 AND Userid = ?";
-    let bankUserId = req.body.bankUserId;
-    con.query(list_of_unpaid_loans, [bankUserId], async (err, results) => {
-        if (err) {
-            res.status(500).send("Bad Request: ");
-        } else {
 
+app.get('/api/bank/list-loans', async (req, res) => {
+    const query = "SELECT BankUserId, CreatedAt, ModifiedAt, Amount FROM loan WHERE Amount > 0 AND BankUserId = ?";
+    let bankUserId = req.body.bankUserId;
+    db.all(query, [bankUserId], async (err, results) => {
+        if (err) {
+            res.status(500).send({"Bad Request: ": "Cannot find database"});
+        } else {
             res.status(200).send({ "Results": "Final", results });
         }
     });
 });
 
-app.post('/add_account', async (req, res) => {
-    let id = req.body.id;
-    let bankUserId = req.body.bankUserId;
-    let isStudent = req.body.isStudent;
-    let createAt = req.body.createAt;
+app.post('/api/bank/add-account', async (req, res) => {
+    let bankUserId = req.body.BankUserId;
+    let accountNo = req.body.AccountNo;
+    let isStudent = req.body.IsStudent;
+    let createAt = req.body.CreatedAt;
     let modifiedAt = req.body.ModifiedAt;
-    let interestRate = req.body.interestRate;
-    let amount = req.body.amount;
-    let accountNo = req.body.accountNo;
-    const insert_into_account = "INSERT INTO  BankBorger.account (id, BankUserId, AccountNo, IsStudent, CreateAt, ModfiedAt, InterestRate, Amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-    con.query(insert_into_account, [id, bankUserId, accountNo, isStudent, createAt, modifiedAt, interestRate, amount], async (err) => {
-        if (err) throw err;
-        res.status(200).send("inserted:");
+    let interestRate = req.body.InterestRate;
+    let amount = req.body.Amount;
+    const query = "INSERT INTO account (BankUserId, AccountNo, IsStudent, CreatedAt, ModifiedAt, InterestRate, Amount) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    db.run(query, [bankUserId, accountNo, isStudent, createAt, modifiedAt, interestRate, amount], async (err) => {
+        if (err) {
+            res.status(500).send({'Response':'Error creating account'});
+        }
+            res.status(200).send({"Response": "added to account ->  ", bankUserId, accountNo, isStudent, createAt, modifiedAt, interestRate, amount});
+        
     });
 });
-app.get('/api/bank/read_account', async (req, res) => {
-    const readquery_account = "SELECT id, BankUserId,IsStudent, CreateAt, ModfiedAt, InterestRate, Amount FROM BankBorger.account";
 
-    con.query(readquery_account, async (err, results, fields) => {
-        if (err) throw err;
-        console.log(results);
-        res.status(200).send({ "response": "Data set fetched: ", results });
+app.get('/api/bank/read-account', async (req, res) => {
+    const query = "SELECT * FROM account";
+    db.get(query, async (err, results) => {
+        if (err) {
+            res.status(500).send({"Response": "Error reading all accounts"});
+        } else {
+            res.status(200).send({ "response": "Data set fetched: ", results});
+        }
     });
 });
-app.post('/add_amount', async (req, res) => {
 
+app.post('/api/bank/add-amount', async (req, res) => {
+    let amount = req.body.Amount;
+    let bankUserId = req.body.BankUserId;
+    const query = "SELECT Amount FROM account WHERE BankUserId = ?";
+    db.get(query, [bankUserId], async (err, results) => {
+        if(err) {
+            res.status(500).send({"Response": "Cannot get account"});
+        } else {
+           
+            finalAmount = amount + results.Amount;
+            const query = "UPDATE account SET AMOUNT = ? WHERE BankUserId =?";
+            db.run(query, [finalAmount, bankUserId], async (err, results) => {
+                if (err){
+                    res.status(500).send({"Response": "Couldn't update account with new amount."});
+                } else {
+                    res.status(200).send({"Response: new Amount in account": finalAmount});
+                }
+            })
+
+        }
+    });
 });
-app.post('/api/bank/update_account', async (req, res) => {
+
+app.post('/api/bank/update-account', async (req, res) => {
     let where = req.body.where;
     let change = req.body.change;
-    let id_find = req.body.id_find;
-    console.log(where + " " + change + " " + id_find)
-    const updatequery_account = "UPDATE account SET ModfiedAt = ?  WHERE BankUserId =  ?";
+    let bankUserId = req.body.BankUserId;
+    let modifiedAt = new Date().toISOString().slice(0, 10);
+    switch (where){
+        case "IsStudent":
+            let queryIsStuendet = "UPDATE account SET IsStudent = ? AND ModifiedAt = ? WHERE BankUserId = ?";
+            db.run(queryIsStuendet, [change, modifiedAt, bankUserId], async (err, result) => {
+                if (err) {
+                    res.status(500).send({"Bad Request":"Cannot update "+where+" for user", bankUserId})
+                } else {
+                    res.status(200).send({"changed the bankUserId:  ": bankUserId , where, change});
+                }         
+            })
+        break;
+        case "InterestRate":
+            let queryInterest = "UPDATE account SET InterestRate = ? AND ModifiedAt = ? WHERE BankUserId = ?";
+            db.run(queryInterest, [change, modifiedAt, bankUserId], async (err, result) => {
+                if (err) {
+                    res.status(500).send({"Bad Request":"Cannot update "+where+" for user", bankUserId})
+                } else {
+                    res.status(200).send({"changed the bankUserId": bankUserId , where, change});
+                }
+            })
+        break;
+        case "Amount":
+            let queryAmount = "UPDATE account SET Amount = ? AND ModifiedAt = ? WHERE BankUserId = ?";
+            db.run(queryAmount, [change, modifiedAt, bankUserId], async (err, result) => {
+                if (err) {
+                    res.status(500).send({"Bad Request":"Cannot update "+where+" for user", bankUserId});
+                } else {
+                    res.status(200).send({"changed the bankUserId:  ": bankUserId , where, change});
+                }
+            })
+        break;
+        default:
+            console.log("deafult");
+        break;
+    }
+   
+});
 
-    con.query(updatequery_account, [change, id_find], async (err) => {
+app.post('/api/bank/delete-account', async (req, res) => {
+    let bankUserId = req.body.BankUserId;
+    const query = "DELETE FROM account WHERE BankUserId = ?";
+    db.run(query, [bankUserId], async (err) => {
         if (err) {
-            res.status(500).send("Bad Request")
+            res.status(500).send({"Bad Request": "Cannot connect to database"});
         } else {
-            res.status(200).send("changed the follow: " + id_find + " to " + change);
+            res.status(204).send({"Deleted id":  bankUserId});
         }
     });
 });
-app.post('/api/bank/delete_account', async (req, res) => {
-    let id_find = req.body.id_find;
-    const deletequery_account = "DELETE FROM BankBorger.account WHERE BankUserId = ?";
-    con.query(deletequery_account, [id_find], async (err) => {
+
+app.post('/api/bank/add-bankUser', async (req, res) => {
+    let userid = req.body.UserId;
+    let createAt = req.body.CreatedAt;
+    let modifiedAt = new Date().toISOString().slice(0, 10);
+    const query = "INSERT INTO  bankuser (UserId, CreatedAt, ModifiedAt) VALUES  (?, ?, ?)";
+    db.run(query, [userid, createAt, modifiedAt], async (err) => {
         if (err) {
-            res.status(500).send("Bad Request")
+            res.status(500).send({"Bad Request": "Cannot create bankUser"});
         } else {
-            res.status(200).send("Deleted id: " + req.body.id_find);
+            res.status(200).send({"inserted: " :userid, createAt});
         }
     });
 });
 
-//CRUD BankUser
-app.post('/api/bank/add_bankUser', async (req, res) => {
-    let userid = req.body.userId;
-    let createAt = req.body.CreateAt;
-    let modifiedAt = req.body.ModifiedAt;
-    const createquery_bankUser = "INSERT INTO  BankBorger.bankuser (Userid, CreateAt, ModifiedAt) VALUES  (?, ?, ?)";
-    con.query(createquery_bankUser, [userid, createAt, modifiedAt], async (err) => {
+app.get('/api/bank/read-bankUser', async (req, res) => {
+    const query = "SELECT Userid, CreatedAt, ModifiedAt FROM bankuser";
+    db.all(query, async (err, results) => {
         if (err) {
-            res.status(500).send("Bad Request")
-
-        } else {
-            res.status(200).send("inserted: " + userid + " " + createAt)
-        }
-    });
-});
-app.get('/api/bank/read_bankUser', async (req, res) => {
-    const readquery_bankUser = "SELECT id, Userid, CreateAt, ModifiedAt FROM BankBorger.bankuser";
-    con.query(readquery_bankUser, async (err, results) => {
-        if (err) {
-            res.status(500).send("Bad Request")
-
+            res.status(500).send({"Bad Request": "Cannot get bankUsers"});
         } else {
             res.status(200).send({ "Data set fetched: \n": "Resutls", results });
         }
     });
 });
-app.post('/api/bank/update_bankUser', async (req, res) => {
-    let change = req.body.change;
-    let id_find = req.body.id_find;
-    const updatequery_bankUser = "UPDATE BankBorger.bankuser SET CreateAt = ?  WHERE id =  ?";
-    con.query(updatequery_bankUser, [change, id_find], async (err) => {
-        if (err) {
-            res.status(500).send("Bad Request")
-        }
-        res.status(200).send("changed the follow: " + id_find + " to " + change);
-    });
+
+app.post('/api/bank/update-bankUser', async (req, res) => {
+    let change = req.body.Change;
+    let where  = req.body.Where;
+    let bankUserId = req.body.BankUserId;
+    let modifiedAt = new Date().toISOString().slice(0, 10);
+    switch(where) {
+        case "CreatedAt":
+            let queryCreatedAt = "UPDATE bankuser SET CreatedAt = ? AND ModifiedAt = ? WHERE UserId =  ?";
+            db.run(queryCreatedAt, [change, modifiedAt, bankUserId], async (err) => {
+                if (err) {
+                    res.status(500).send({"Bad Request": "Cannot change:" + bankUserId + "and set:" + change})
+                } else {
+                    res.status(200).send({"changed: ": bankUserId, where, change});
+                }
+            });
+        break;
+        case "ModifiedAt":
+            let queryModifiedAT = "UPDATE bankuser SET ModifiedAt = ? WHERE UserId =  ?";
+            db.run(queryModifiedAT, [change, bankUserId], async (err) => {
+                if (err) {
+                    res.status(500).send({"Bad Request": "Cannot change:" + bankUserId + "and set:" + change});
+                } else {
+                    res.status(200).send({"changed: ": bankUserId, where, change});
+                }
+            });
+            
+        break;
+        case "BankUserId":
+            let queryBankUserId = "UPDATE bankuser SET UserId = ? AND ModifiedAt = ? WHERE UserId =  ?";
+            db.run(queryBankUserId, [change, modifiedAt,bankUserId], async (err) => {
+                if (err) {
+                    res.status(500).send({"Bad Request": "Cannot change:" + bankUserId + "and set:" + change})
+                } else {
+                    res.status(200).send({"changed: ": bankUserId, where, change});
+                }
+            });
+        break;
+        default:
+            res.status(500).send({"Unexpected error": "exceptions are flying wild these days (End of switch update bankUser)"});
+        break;
+    }
 });
-app.post('/api/bank/delete_bankUser', async (req, res) => {
 
-    let id_find = req.body.id_find;
-    const deletequery_bankUser = "DELETE FROM BankBorger.bankuser WHERE UserId = ?";
-    con.query(deletequery_bankUser, [id_find], async (err) => {
+app.post('/api/bank/delete-bankuser', async (req, res) => {
+    let bankUserId = req.body.bankUserId;
+    const query = "DELETE FROM bankuser WHERE UserId = ?";
+    db.run(query, [bankUserId], async (err) => {
         if (err) {
-            res.status(500).send("Bad Request")
-
+            res.status(500).send({"Bad Request":"Cannot Delete User: ", bankUserId});
         } else {
-            res.status(200).send("Deleted id: " + req.body.id_find);
+            res.status(204).send({"Deleted id: ": bankUserId});
         }
     });
 });
-//DB Connection
-const con = db.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "fedefrede1",
-    database: "BankBorger"
-});
-con.connect(function (err) {
-    if (err) throw err;
-    console.log("Connected");
-});
-//?Main?
+
 app.listen(PORT, (err) => {
     if (err) {
         console.log(err)
