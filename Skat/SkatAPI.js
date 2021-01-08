@@ -61,22 +61,25 @@ app.get('/get-user', (req, res) => {
 app.patch('/update-user', (req, res) => {
     console.log('received request on "/update-user"');
     let data = req.body;
-    let query = "UPDATE SkatUser SET IsActive = ? WHERE Id = ?";
 
-    db.run(query, [data.isActive, data.id], (result, err) => {
+    let query = "UPDATE SkatUser SET IsActive = ? WHERE Id = ?";
+    db.run(query, [data.isActive, data.id], async function (err) {
         if (err) {
             console.log(err);
             res.status(500).send({'Response':'Error updating user', err });
+        } else if (this.changes >= 1) {
+            console.log(`Rows affected: ${this.changes}`)
+            res.status(200).send({'Response': `Success updating Rows affected: ${this.changes}`});
         } else {
-            res.status(200).send({'Response': 'Success updating'});
+            res.status(400).send({'Response': ` Error updating: Rows affected: ${this.changes}. Try another Id`})
         };
     });
 });
 
 //delete specific user
 app.delete('/api/delete-user', (req, res) => {
-    console.log('received request on "/delete-user"');
     let data = req.body;
+    
     let query = 'DELETE From SkatUser WHERE Id = ?';
     db.run(query, [data.Id], (err) => {
         if (err) {
