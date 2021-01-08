@@ -188,7 +188,7 @@ app.post('/api/pay-taxes', (req, res) => {
     
     // verify valid amount
     if (amount <= 0) {
-        res.status(400).send({"Response":"Invalid amount must be over 0"});
+        res.status(400).send({"Response":"Invalid request: amount must be over 0"});
 
     // Check if unpaid taxyears. 
     } else {
@@ -213,8 +213,6 @@ app.post('/api/pay-taxes', (req, res) => {
         axios.post('http://localhost:7071/api/Skat_Tax_Calculator', {
             money: amount
         })
-
-        // Response 
         .then((response) => {
             let taxAmount = String(response.data.tax_money);    
             let query = "UPDATE SkatUserYear SET IsPaid = 1, Amount = ? WHERE UserId = ?";   
@@ -232,9 +230,7 @@ app.post('/api/pay-taxes', (req, res) => {
                     BankUserId: id,
                     Amount: taxAmount
                 }
-            })
-
-            // Response 
+            }) 
             .then((response) => {
                 console.log('success deducting from account');
                 res.status(200).send({"Response":"Taxes sucessfully paid. The amount has been deducted from your account"});
