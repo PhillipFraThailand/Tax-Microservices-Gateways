@@ -144,11 +144,11 @@ app.delete('/api/delete-skatyear', (req, res) => {
     let query = 'DELETE From SkatYear WHERE Id = ?';
     db.run(query, [data.Id], async function (err) {
         if (err) {
-            res.status(500).send({"Response":"Error deleting SkatYear"});
+            res.status(500).send({"Response":"Error deleting SkatYear please make sure the id exists."});
         } else if (this.changes >= 1) {
             res.status(200).send({"Response": `Success deleting SkatYear, Rows affected: ${this.changes}`});
         } else {
-            res.status(400).send({'Response': `Error deleting, Rows affected: ${this.changes}`})
+            res.status(400).send({'Response': `Error deleting, Rows affected: ${this.changes}, maybe you already deleted it?`})
         };
     }); 
 });
@@ -156,25 +156,28 @@ app.delete('/api/delete-skatyear', (req, res) => {
 // create skatUserYear takes SkatUserId, SkatYearId, UserId, IsPaid, Amount
 app.post('/api/create-skatUserYear', (req, res) => {
     let data = req.body;
-
     let id = data.Id;
     let skatUserId = data.SkatUserId;
     let skatYearId = data.SkatYearId;
     let userId = data.UserId;
     let isPaid = data.IsPaid;
     let amount = data.Amount;
-    console.log(id,skatUserId,skatYearId,userId,isPaid,amount)
 
     let query = "INSERT INTO SkatUserYear VALUES (?, ?, ?, ?, ?, ?)";
 
-    db.run(query, [id,skatUserId,skatYearId,userId,isPaid,amount], (err) =>{
-        if (err) {
-            console.log(err);
-            res.status(400).send({"Response":"Error creating SkatUserYear"});
-        } else {
-            res.status(201).send({"Response":"Succesfully created SkatUserYear"});
-        }
-    })
+    if (amount <= 0) {
+        res.status(400).send({"Response":"Bad request. Amount must be above 0"});
+    } else {
+        db.run(query, [id,skatUserId,skatYearId,userId,isPaid,amount], async function (err) {
+            if (err) {
+                res.status(500).send({"Response":"Error creating SkatUserYear, maybe the id already exists?"});
+            } else if (this.changes >= 1) {
+                res.status(201).send({"Response":`Succesfully created SkatUserYear Rows affected: ${this.changes}`});
+            } else {
+                res.status(400).send({"Response":`Error creating SkatUserYear Rows affected: ${this.changes}`});
+            }
+        })
+    }
 })
 
 // pay-taxes
