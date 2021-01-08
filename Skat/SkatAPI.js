@@ -139,15 +139,16 @@ app.patch('/api/update-skatyear', (req, res) => {
 
 // delete skatYear
 app.delete('/api/delete-skatyear', (req, res) => {
-    console.log('received request on "/delete-skatyear"');
     let data = req.body;
+
     let query = 'DELETE From SkatYear WHERE Id = ?';
-    db.run(query, [data.Id], (err) => {
+    db.run(query, [data.Id], async function (err) {
         if (err) {
-            console.log(err);
             res.status(500).send({"Response":"Error deleting SkatYear"});
+        } else if (this.changes >= 1) {
+            res.status(200).send({"Response": `Success deleting SkatYear, Rows affected: ${this.changes}`});
         } else {
-            res.status(200).send({"Response": "OK Deleted SkatYear"});
+            res.status(400).send({'Response': `Error deleting, Rows affected: ${this.changes}`})
         };
     }); 
 });
