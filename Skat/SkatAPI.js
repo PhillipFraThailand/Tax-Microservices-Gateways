@@ -94,12 +94,12 @@ app.delete('/api/delete-user', (req, res) => {
 app.post('/api/create-skatyear', (req, res) => {
     let data = req.body;
     let query = 'INSERT INTO SkatYear(Label, CreatedAt, ModifiedAt, StartDate, EndDate) VALUES(?,?,?,?,?)';
+
     db.run(query, [data.Label, data.CreatedAt, data.ModifiedAt, data.StartDate, data.EndDate], (err) => {
         if (err) {
             console.log(err);
-            res.status(500).send({'Response':'Error creating SkatYear'});
-        } 
-        else {
+            res.status(500).send({'Response':'Error creating SkatYear, please post these values: Label, CreatedAt, ModifiedAt, StartDate, EndDate'});
+        } else {
             res.status(201).send({'Response':'Succes creating SkatYear'});
         };
     });
@@ -123,15 +123,16 @@ app.get('/api/get-skatyear', (req,res) => {
 
 // update SkatYear
 app.patch('/api/update-skatyear', (req, res) => {
-    console.log('received request on "/skatyear"');
     let data = req.body;
-    let query = 'UPDATE SkatYear SET Label = ? WHERE ? = ?';
-    db.run(query, [data.Value, data.Condition, data.ConditionValue], (err) => {
+    
+    let query = 'UPDATE SkatYear SET Label = ? WHERE Id = ?';
+    db.run(query, [data.label, data.id], async function (err) {
         if (err) {
-            console.log(err);
-            res.status(500).send({'Response':'Error updating SkatYear'});
+            res.status(500).send({'Response':'Error updating SkatYear, please post a label and id'});
+        } else if (this.changes >= 1) {
+            res.status(200).send({'Response': `Success updating SkatYear, Rows affected: ${this.changes}`});
         } else {
-            res.status(200).send({'Response': 'Success updating SkatYear'});
+            res.status(400).send({'Response': `Error updating, Rows affected: ${this.changes}`})
         };
     });
 });
