@@ -1,73 +1,102 @@
-//steffen giessing
 const express = require('express');
-const db = require('mysql');
 const http = (require('http'))
 const PORT = 5004;
+const sqlite3 = require('sqlite3');
 var app = express();
 app.use(express.json());
 
-//DB Connection
-const con = db.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "fedefrede1",
-    database: "BankBorger"
-});
-con.connect(function (err) {
-    if (err) throw err;
-    console.log("Connected");
-});
-/*
-ADDRESS CRUD
- */
-app.get('/api/borger/read_borger_address_table', async (req, res) => {
-    const readquery_address = "SELECT id, BorgerUserId, CreatedAt, IsValid FROM BankBorger.address";
-    con.query(readquery_address, async (err, results) => {
+var db = new sqlite3.Database('/Users/phillipeismark/Documents/SystemIntegration/si_mandatory_assignment_2/Borger/borgerDb.sqlite');
+
+app.get('/api/borger/read-borger-address', async (req, res) => {
+    const query = "SELECT BorgerUserId, CreatedAt, IsValid FROM address";
+    db.all(query, async (err, results) => {
         if (err) {
-            res.status(500).send("Bad Request")
-        }
-        res.status(200).send({ "Response": "Data set fetched: ", results });
+            res.status(500).send({"Response":"DB error"});
+        } else if (results.length > 0) {
+            res.status(200).send({ "Response": "Success: ", results});
+        } else {
+            res.status(400).send({"Bad Request": "No results"});
+        }               
     });
 });
 
-app.post('/api/borger/add_address', async (req, res) => {
-    let id = req.body.id;
+app.get('/api/borger/get-borgerAddress-by-id', (req,res) => {
+    let data = req.body;
+    let id = data.id;
+
+    let query = "SELECT BorgerUserId, CreatedAt, IsValid FROM address WHERE Id = ?";
+    db.all(query, [id], async function (err, result) {
+        if (err) {
+            res.status(500).send({"Bad Request": "Internal error"});
+        } else if (result.length > 0) {
+            res.status(200).send({ "Success:":"Response", result});
+        } else {
+            res.status(400).send({"Bad Request": "No results, please post a valid id"});
+        }
+    });
+});
+
+app.post('/api/borger/add-address', async (req, res) => {
     let borgerUserId = req.body.BorgerUserId;
     let createAt = req.body.CreatedAt;
     let isValid = req.body.IsValid;
-    const createquery_address = "INSERT INTO  address (id, BorgerUserId, CreatedAt, IsValid) VALUES (?, ?, ?, ?)";
-    con.query(createquery_address, [id, borgerUserId, createAt, isValid], async (err) => {
+
+    const query = "INSERT INTO  address (BorgerUserId, CreatedAt, IsValid) VALUES (?, ?, ?)";
+    db.run(query, [borgerUserId, createAt, isValid], async (err) => {
         if (err) {
-            res.status(500).send("Bad Request")
+            res.status(500).send({"Bad Request": "Unable to add into address table please post these values: BorgerUserId, CreatedAt, IsValid"});
         } else {
-            res.status(200).send("inserted: " + id + " " + borgerUserId + " " + createAt + " " + isValid)
+            res.status(200).send({"inserted: ": borgerUserId , createAt, isValid});
         }
     });
 });
 
-app.post('/api/borger/update_address', async (req, res) => {
-    let change = req.body.change;
-    let id_find = req.body.id_find;
-    const updatequery_address = "UPDATE address SET CreatedAt = ?  WHERE BorgerUserId =  ?";
-    con.query(updatequery_address, [change, id_find], async (err) => {
-        if (err) {
-            res.status(500).send("Bad Request")
+app.patch('/api/borger/update-address', async (req, res) => {
+    let change = req.body.Change;
+    let where = req.body.Where;
+    let borgerUserId = req.body.BorgerUserId;
 
-        } else {
-            res.status(200).send("changed the follow: ID: " + id_find + " Created At: To " + change);
-        }
-    });
+    switch (where){
+        case "CreatedAt":
+            const queryCreatedAt = "UPDATE address SET CreatedAt = ?  WHERE BorgerUserId =  ?";
+            db.run(queryCreatedAt, [change, borgerUserId], async function (err) {
+                if (err) {
+                    res.status(500).send({"Response":" ERROR Cannot update: "+where+" for user "+borgerUserId});
+                } else if (this.changes >= 1) {
+                    res.status(200).send({"changed the follow:":"Updated " +where+ " To "+ change});
+                } else {
+                    res.status(400).send({"Bad Request":"Are you sure the Id exists?"});
+                }
+            });
+        break;
+        case "IsValid":
+            const queryIsValid = "UPDATE address SET IsValid = ? WHERE BorgerUserId = ?";
+            db.run(queryIsValid, [change, borgerUserId], async (err) => {
+                if (err) {
+                    res.status(500).send({"Bad Request":"Cannot update: "+where+" for user "+borgerUserId});
+                } else if (this.changes >= 1) {
+                    res.status(200).send({"changed the follow:":"Updated " +where+ " To "+ change});
+                } else {
+                    res.status(400).send({"Bad Request":"Are you sure the Id exists?"});
+                }
+            });
+        break;
+        default:
+            res.status(500).send({"Response": "Bad request Cannot update column. Update works on 'CreatedAt' and 'IsValid'"});
+        break;
+    }
 });
 
-app.post('/api/borger/delete_address', async (req, res) => {
-
-    let id_find = req.body.id_find;
-    const deletequery_address = "DELETE FROM address WHERE BorgerUserId = ?";
-    con.query(deletequery_address, [id_find], async (err) => {
+app.delete('/api/borger/delete-address', async (req, res) => {
+    let borgerUserId = req.body.BorgerUserId;
+    const query = "DELETE FROM address WHERE BorgerUserId = ?";
+    db.run(query, [borgerUserId], async function (err) {
         if (err) {
-            res.status(500).send("Bad Request")
+            res.status(500).send({"Bad Request": "Could not delete from the database"});
+        } else if (this.changes >= 1) {
+            res.status(200).send({"Deleted id": borgerUserId});
         } else {
-            res.status(200).send("Deleted id: " + id_find);
+            res.status(400).send({"Bad Request":"Are you sure the borgerUserId exists? Maybe its already been deleted"});
         }
     });
 });
@@ -75,66 +104,98 @@ app.post('/api/borger/delete_address', async (req, res) => {
 /*
 BORGER USER CRUD
  */
-app.post('/api/borger/add_borgeruser', async (req, res) => {
-    let id = req.body.id;
-    let userid = req.body.UserId;
-    let createAt = req.body.createAt;
-    const createquery_borgeruser = "INSERT INTO  borgeruser (id, Userid, CreateAt) VALUES (?, ?, ?)";
-
-    con.query(createquery_borgeruser, [id, userid, createAt], async (err) => {
+app.post('/api/borger/add-borgeruser', async (req, res) => {
+    let userId = req.body.UserId;
+    let createdAt = req.body.CreatedAt;
+    const query = "INSERT INTO  borgerUser (UserId, CreatedAt) VALUES (?, ?)";
+    db.run(query, [userId, createdAt], async (err) => {
         if (err) {
-            res.status(500).send("Bad Request")
+            res.status(500).send({"Bad Request": "Cannot add borgerUser, please post UserId and CreatedAt"});
         } else {
-            res.status(200).send("inserted: " + userid + " " + createAt)
+            res.status(200).send({"inserted: ": userId, createdAt});
         }
     });
 });
 
-app.get('/api/borger/read_borgeruser', async (req, res) => {
-    const readquery_borgeruser = "SELECT id, Userid, CreateAt FROM borgeruser";
-
-    con.query(readquery_borgeruser, async (err, results, fields) => {
+app.get('/api/borger/read-borgeruser', async (req, res) => {
+    const query = "SELECT UserId, CreatedAt FROM borgerUser";
+    db.all(query, async (err, results, fields) => {
         if (err) {
-            res.status(500).send("Bad Request")
-
+            res.status(500).send({"Bad Request": "Unable to reach database"});
         } else {
-            console.log(results);
             res.status(200).send({ "Data set fetched: ": "Response", results });
         }
     });
 });
 
-app.post('/api/borger/update_borgeruser', async (req, res) => {
-    let change = req.body.change;
-    let id_find = req.body.id_find;
-    const updatequery_borgeruser = "UPDATE borgeruser SET CreateAt = ?  WHERE id =  ?";
+app.get('/api/borger/get-borgerUser-by-id', (req,res) => {
+    let data = req.body;
+    let id = data.id;
 
-    con.query(updatequery_borgeruser, [change, id_find], async (err) => {
+    let query = "SELECT * FROM borgerUser WHERE id = ?";
+    db.all(query, [id], async function (err, result) {
         if (err) {
-            res.status(500).send("Bad Request")
-
+            res.status(500).send({"Response":"Internal error"});
+        } else if (result.length > 0) {
+            res.status(200).send({ "Success:":"Response", result});
         } else {
-            res.status(200).send("changed the follow: " + id_find + " to " + change);
+            res.status(400).send({"Response":"Bad request: Are you sure the id exists?"});
         }
     });
 });
 
-app.post('/api/borger/delete_borgeruser', async (req, res) => {
+app.patch('/api/borger/update-borgeruser', async (req, res) => {
+    let change = req.body.Change;
+    let where = req.body.Where;
+    let userId = req.body.UserId;
 
-    let id_find = req.body.id_find;
+    console.log(change, where, userId)
+    switch (where) {
+        case "CreatedAt":
+            const queryCreatedAt = "UPDATE borgerUser SET CreatedAt = ?  WHERE UserId =  ?";
+            db.run(queryCreatedAt, [change, userId], async function (err) {
+                if (err) {
+                    res.status(500).send({"Bad Request":"Cannot update: "+where+" for user "+userId});
+                } else if (this.changes >= 1) {
+                    res.status(200).send({"changed the follow:":"Updated " +where+ " To "+ change});
+                } else {
+                    res.status(400).send({"Bad Request":"Are you sure the Id exists?"});
+                }
+            });
+        break;
+        case "UserId":
+            const queryUserId = "UPDATE borgerUser SET UserId = ?  WHERE UserId =  ?";
+            db.run(queryUserId, [change, userId], async (err) => {
+                if (err) {
+                    res.status(500).send({"Bad Request":"Cannot update: "+where+" for user "+userId});
+                } else if (this.changes >= 1) {
+                    res.status(200).send({"changed the follow:":"Updated " +where+ " To "+ change});
+                } else {
+                    res.status(400).send({"Bad Request":"Are you sure the Id exists?"});
+                }
+            });
+        break;
+        default:
+            res.status(500).send({"Response": "Bad request Cannot update column. Update works on 'UserId' and 'CreatedAt'"});
+        break;
+    }
+});
 
-    const deletequery_borgeruser = "DELETE FROM borgeruser WHERE Userid = ?";
-    con.query(deletequery_borgeruser, [id_find], async (err) => {
+app.delete('/api/borger/delete-borgeruser', async (req, res) => {
+    let userId = req.body.UserId;
+    const query = "DELETE FROM borgerUser WHERE UserId = ?";
+    db.run(query, [userId], async function (err) {
         if (err) {
-            res.status(500).send("Bad Request")
-
+            res.status(500).send({"Bad Request": "Cannot delete borguser"});
+        } else if (this.changes >= 1) {
+            res.status(200).send({"OK DELETED:":"Deleted id: ", userId});
         } else {
-            res.status(200).send("Deleted id: " + req.body.id_find);
+            res.status(400).send({"Bad Request":"Are you posting the correct values? Should be 'UserId':'3' or maybe the id is already deleted"});
         }
     });
 });
+
 app.use(express.urlencoded({ extended: true }))
-//?Main?
 app.listen(PORT, (err) => {
 
     if (err) {

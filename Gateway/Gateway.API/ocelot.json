@@ -1,7 +1,7 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/api/borger/read_borger_address_table",
+      "DownstreamPathTemplate": "/api/borger/read-borger-address",
       "DownstreamScheme": "http",
       "DownstreamHostandPorts": [
         {
@@ -9,7 +9,7 @@
           "Port": "5004"
         }
       ],
-      "UpstreamPathTemplate": "/read_address",
+      "UpstreamPathTemplate": "/borger/read-borger-address",
       "UpstreamHttpMethod": [
         "GET"
       ]
@@ -29,6 +29,20 @@
       ]
     },
     {
+      "DownstreamPathTemplate": "/api/borger/get-borgerUser-by-id",
+      "DownstreamScheme": "http",
+      "DownstreamHostandPorts": [
+        {
+          "Host": "localhost",
+          "Port": "5004"
+        }
+      ],
+      "UpstreamPathTemplate": "/borger/get-borgerUser-by-id",
+      "UpstreamHttpMethod": [
+        "GET"
+      ]
+    },
+    {
       "DownstreamPathTemplate": "/api/bank/add-account",
       "DownstreamScheme": "http",
       "DownstreamHostandPorts": [
@@ -43,7 +57,7 @@
       ]
     },
     {
-      "DownstreamPathTemplate": "/api/borger/add_address",
+      "DownstreamPathTemplate": "/api/borger/add-address",
       "DownstreamScheme": "http",
       "DownstreamHostandPorts": [
         {
@@ -51,13 +65,13 @@
           "Port": "5004"
         }
       ],
-      "UpstreamPathTemplate": "/borger/add_address",
+      "UpstreamPathTemplate": "/borger/add-address",
       "UpstreamHttpMethod": [
         "POST"
       ]
     },
     {
-      "DownstreamPathTemplate": "/api/borger/update_address",
+      "DownstreamPathTemplate": "/api/borger/update-address",
       "DownstreamScheme": "http",
       "DownstreamHostandPorts": [
         {
@@ -65,13 +79,13 @@
           "Port": "5004"
         }
       ],
-      "UpstreamPathTemplate": "/borger/update_address",
+      "UpstreamPathTemplate": "/borger/update-address",
       "UpstreamHttpMethod": [
-        "POST"
+        "PATCH"
       ]
     },
     {
-      "DownstreamPathTemplate": "/api/borger/delete_address",
+      "DownstreamPathTemplate": "/api/borger/get-borgerAddress-by-id",
       "DownstreamScheme": "http",
       "DownstreamHostandPorts": [
         {
@@ -79,41 +93,13 @@
           "Port": "5004"
         }
       ],
-      "UpstreamPathTemplate": "/borger/delete_address",
-      "UpstreamHttpMethod": [
-        "POST"
-      ]
-    },
-    {
-      "DownstreamPathTemplate": "/api/borger/add_borgeruser",
-      "DownstreamScheme": "http",
-      "DownstreamHostandPorts": [
-        {
-          "Host": "localhost",
-          "Port": "5004"
-        }
-      ],
-      "UpstreamPathTemplate": "/borger/add_borgeruser",
-      "UpstreamHttpMethod": [
-        "POST"
-      ]
-    },
-    {
-      "DownstreamPathTemplate": "/api/borger/read_borgeruser",
-      "DownstreamScheme": "http",
-      "DownstreamHostandPorts": [
-        {
-          "Host": "localhost",
-          "Port": "5004"
-        }
-      ],
-      "UpstreamPathTemplate": "/borger/read_borgeruser",
+      "UpstreamPathTemplate": "/borger/get-address-by-id",
       "UpstreamHttpMethod": [
         "GET"
       ]
     },
     {
-      "DownstreamPathTemplate": "/api/borger/update_borgeruser",
+      "DownstreamPathTemplate": "/api/borger/delete-address",
       "DownstreamScheme": "http",
       "DownstreamHostandPorts": [
         {
@@ -121,13 +107,27 @@
           "Port": "5004"
         }
       ],
-      "UpstreamPathTemplate": "/borger/update_borgeruser",
+      "UpstreamPathTemplate": "/borger/delete-address",
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/borger/add-borgeruser",
+      "DownstreamScheme": "http",
+      "DownstreamHostandPorts": [
+        {
+          "Host": "localhost",
+          "Port": "5004"
+        }
+      ],
+      "UpstreamPathTemplate": "/borger/add-borgeruser",
       "UpstreamHttpMethod": [
         "POST"
       ]
     },
     {
-      "DownstreamPathTemplate": "/api/borger/delete_borgeruser",
+      "DownstreamPathTemplate": "/api/borger/read-borgeruser",
       "DownstreamScheme": "http",
       "DownstreamHostandPorts": [
         {
@@ -135,9 +135,37 @@
           "Port": "5004"
         }
       ],
-      "UpstreamPathTemplate": "/borger/delete_borgeruser",
+      "UpstreamPathTemplate": "/borger/read-borgeruser",
       "UpstreamHttpMethod": [
-        "POST"
+        "GET"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/borger/update-borgeruser",
+      "DownstreamScheme": "http",
+      "DownstreamHostandPorts": [
+        {
+          "Host": "localhost",
+          "Port": "5004"
+        }
+      ],
+      "UpstreamPathTemplate": "/borger/update-borgeruser",
+      "UpstreamHttpMethod": [
+        "PATCH"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/borger/delete-borgeruser",
+      "DownstreamScheme": "http",
+      "DownstreamHostandPorts": [
+        {
+          "Host": "localhost",
+          "Port": "5004"
+        }
+      ],
+      "UpstreamPathTemplate": "/borger/delete-borgeruser",
+      "UpstreamHttpMethod": [
+        "DELETE"
       ]
     },
     {
@@ -207,7 +235,7 @@
       ],
       "UpstreamPathTemplate": "/bank/update-bankUser",
       "UpstreamHttpMethod": [
-        "POST"
+        "PATCH"
       ]
     },
     {
@@ -221,7 +249,7 @@
       ],
       "UpstreamPathTemplate": "/bank/delete-account",
       "UpstreamHttpMethod": [
-        "POST"
+        "DELETE"
       ]
     },
     {
@@ -277,7 +305,7 @@
       ],
       "UpstreamPathTemplate": "/bank/update-account",
       "UpstreamHttpMethod": [
-        "POST"
+        "PATCH"
       ]
     }, 
     {
@@ -305,7 +333,7 @@
       ],
       "UpstreamPathTemplate": "/bank/delete-bankuser",
       "UpstreamHttpMethod": [
-        "POST"
+        "DELETE"
       ]
     },
     {

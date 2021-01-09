@@ -1,0 +1,12 @@
+CREATE TABLE [address](
+    [Id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    [BorgerUserId] INTEGER NOT NULL,
+    [CreatedAt] DATE NOT NULL,
+    [IsValid] INTEGER NOT NULL
+);
+CREATE TABLE [borgerUser](
+    [id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    [UserId] INTEGER NOT NULL,
+    [CreatedAt] DATE NOT NULL,
+    FOREIGN KEY ([Id]) REFERENCES [address](BorgerUserId)
+);

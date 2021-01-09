@@ -33,8 +33,7 @@ app.post('/create-user', (req, res) => {
     let query = 'INSERT INTO SkatUser(UserId, CreatedAt, IsActive) VALUES(?,?,?)';
     db.run(query, [data.UserId, data.CreatedAt, data.IsActive], (err) => {
         if (err) {
-            console.log(err);
-            res.status(500).send({'Response':'Error creating user'});
+            res.status(500).send({'Response':'Error creating user, please post UserId, CreatedAt format yyyy-mm-dd, IsActive 0/1'});
         } 
         else {
             res.status(201).send({'Response':'Succes creating user'});
@@ -44,16 +43,18 @@ app.post('/create-user', (req, res) => {
 
 // get specific user
 app.get('/get-user', (req, res) => {
-    console.log('received request on "/get-user"');
     let data = req.body;
     let query = 'SELECT * FROM SkatUser WHERE Id = ?';
-    db.get(query, [data.Id], (err) => {
+
+    db.all(query, [data.Id], (err, result) => {
         if (err) {
-            console.log(err);
             res.status(500).send({'Response':'Error getting user'});
+        }
+        if (result.length > 0) {
+            res.status(200).send({'Response':result});
         } else {
-            res.status(200).send({'Response':user});
-        };
+            res.status(400).send({'Response':'Error getting user, does the id exist?'});
+        }
     });
 });
 
@@ -107,17 +108,20 @@ app.post('/api/create-skatyear', (req, res) => {
 
 // get skatyear
 app.get('/api/get-skatyear', (req,res) => {
-    console.log('received request on "/get-skatyear"');
     let data = req.body;
+
     let query = 'SELECT * FROM SkatYear WHERE Id = ?';
-    db.get(query, [data.Id], (err, row) => {
+    db.all(query, [data.Id], (err, result) => {
         if (err) {
-            console.log(err);
             res.status(500).send({'Response':'Error getting SkatYear'});
-        } 
-        else {
-            res.status(200).send({'Response':row});
-        };
+        } else {
+            if (result.length > 0) {
+                res.status(200).send({'Response':result});
+            }
+            else {
+                res.status(400).send({'Response':'Error, did you post a valid Id?'});
+            };
+        }
     });
 });
 
